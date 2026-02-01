@@ -1,86 +1,153 @@
-<a name="readme-top"></a>
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/OpenHands/docs/main/openhands/static/img/logo.png" alt="Logo" width="200">
-  <h1 align="center" style="border-bottom: none">OpenHands: AI-Driven Development</h1>
-</div>
 
 
-<div align="center">
-  <a href="https://github.com/OpenHands/OpenHands/blob/main/LICENSE"><img src="https://img.shields.io/badge/LICENSE-MIT-20B2AA?style=for-the-badge" alt="MIT License"></a>
-  <a href="https://docs.google.com/spreadsheets/d/1wOUdFCMyY6Nt0AIqF705KN4JKOWgeI4wUGUP60krXXs/edit?gid=811504672#gid=811504672"><img src="https://img.shields.io/badge/SWEBench-77.6-00cc00?logoColor=FFE165&style=for-the-badge" alt="Benchmark Score"></a>
-  <br/>
-  <a href="https://docs.openhands.dev/sdk"><img src="https://img.shields.io/badge/Documentation-000?logo=googledocs&logoColor=FFE165&style=for-the-badge" alt="Check out the documentation"></a>
-  <a href="https://arxiv.org/abs/2511.03690"><img src="https://img.shields.io/badge/Paper-000?logoColor=FFE165&logo=arxiv&style=for-the-badge" alt="Tech Report"></a>
+# OpenHands: Complete Installation and Java Evaluation Guide
 
+## Step 1: Install Mamba (Miniforge)
+Mamba is used as a faster alternative to Conda for environment management.
+```bash
+curl -L -O "[https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname](https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname) -m).sh"
+bash Miniforge3-$(uname)-$(uname -m).sh
 
-  <!-- Keep these links. Translations will automatically update with the README. -->
-  <a href="https://www.readme-i18n.com/OpenHands/OpenHands?lang=de">Deutsch</a> |
-  <a href="https://www.readme-i18n.com/OpenHands/OpenHands?lang=es">Español</a> |
-  <a href="https://www.readme-i18n.com/OpenHands/OpenHands?lang=fr">français</a> |
-  <a href="https://www.readme-i18n.com/OpenHands/OpenHands?lang=ja">日本語</a> |
-  <a href="https://www.readme-i18n.com/OpenHands/OpenHands?lang=ko">한국어</a> |
-  <a href="https://www.readme-i18n.com/OpenHands/OpenHands?lang=pt">Português</a> |
-  <a href="https://www.readme-i18n.com/OpenHands/OpenHands?lang=ru">Русский</a> |
-  <a href="https://www.readme-i18n.com/OpenHands/OpenHands?lang=zh">中文</a>
+```
 
-</div>
+## Step 2: Create and Activate the OpenHands Environment
 
-<hr>
+Initialize a clean Python 3.12 environment.
 
-🙌 Welcome to OpenHands, a [community](COMMUNITY.md) focused on AI-driven development. We’d love for you to [join us on Slack](https://dub.sh/openhands).
+```bash
+mamba create -n openhands python=3.12 -y
+mamba activate openhands
 
-There are a few ways to work with OpenHands:
+```
 
-### OpenHands Software Agent SDK
-The SDK is a composable Python library that contains all of our agentic tech. It's the engine that powers everything else below.
+## Step 3: Install Core Dependencies
 
-Define agents in code, then run them locally, or scale to 1000s of agents in the cloud.
+Install the necessary tools for the OpenHands ecosystem including Node.js and Poetry.
 
-[Check out the docs](https://docs.openhands.dev/sdk) or [view the source](https://github.com/OpenHands/software-agent-sdk/)
+```bash
+mamba install python=3.12 conda-forge::nodejs conda-forge::poetry -y
 
-### OpenHands CLI
-The CLI is the easiest way to start using OpenHands. The experience will be familiar to anyone who has worked
-with e.g. Claude Code or Codex. You can power it with Claude, GPT, or any other LLM.
+```
 
-[Check out the docs](https://docs.openhands.dev/openhands/usage/run-openhands/cli-mode) or [view the source](https://github.com/OpenHands/OpenHands-CLI)
+## Step 4: Build and Setup the Local Configuration
 
-### OpenHands Local GUI
-Use the Local GUI for running agents on your laptop. It comes with a REST API and a single-page React application.
-The experience will be familiar to anyone who has used Devin or Jules.
+Prepare the project binaries and generate the configuration file.
 
-[Check out the docs](https://docs.openhands.dev/openhands/usage/run-openhands/local-setup) or view the source in this repo.
+```bash
+make build
+make setup-config
 
-### OpenHands Cloud
-This is a deployment of OpenHands GUI, running on hosted infrastructure.
+```
 
-You can try it with a free $10 credit by [signing in with your GitHub or GitLab account](https://app.all-hands.dev).
+## Step 5: Configure Application Settings
 
-OpenHands Cloud comes with source-available features and integrations:
-- Integrations with Slack, Jira, and Linear
-- Multi-user support
-- RBAC and permissions
-- Collaboration features (e.g., conversation sharing)
+Edit the `config.toml` file to include your API keys and specific workspace settings.
 
-### OpenHands Enterprise
-Large enterprises can work with us to self-host OpenHands Cloud in their own VPC, via Kubernetes.
-OpenHands Enterprise can also work with the CLI and SDK above.
+```bash
+# Open and edit the configuration file
+nano config.toml
 
-OpenHands Enterprise is source-available--you can see all the source code here in the enterprise/ directory,
-but you'll need to purchase a license if you want to run it for more than one month.
+```
 
-Enterprise contracts also come with extended support and access to our research team.
+## Step 6: Running the OpenHands Application
 
-Learn more at [openhands.dev/enterprise](https://openhands.dev/enterprise)
+Start the main application process.
 
-### Everything Else
+```bash
+make run
 
-Check out our [Product Roadmap](https://github.com/orgs/openhands/projects/1), and feel free to
-[open up an issue](https://github.com/OpenHands/OpenHands/issues) if there's something you'd like to see!
+```
 
-You might also be interested in our [evaluation infrastructure](https://github.com/OpenHands/benchmarks), our [chrome extension](https://github.com/OpenHands/openhands-chrome-extension/), or our [Theory-of-Mind module](https://github.com/OpenHands/ToM-SWE).
+## Step 7: Docker Base Image Preparation
 
-All our work is available under the MIT license, except for the `enterprise/` directory in this repository (see the [enterprise license](enterprise/LICENSE) for details).
-The core `openhands` and `agent-server` Docker images are fully MIT-licensed as well.
+Ensure you have the correct Docker image for your specific Java project.
 
-If you need help with anything, or just want to chat, [come find us on Slack](https://dub.sh/openhands).
+> **Naming Convention:** `java/project_name:pr_number`
+
+## Step 8: Data Format Transformation
+
+Modify the input and output paths in the Python script to match your local data structure.
+
+* **Script:** `.OpenHands/evaluation/benchmarks/multi_swe_bench/data/data_change.py`
+
+```python
+# Change the following variables inside the script:
+input_file = "tmp/java_examples.jsonl"
+output_file = 'tmp/new/java_examples.jsonl'
+
+```
+
+## Step 9: Configure the Inference Script
+
+Update the bash script variables in `evaluation/benchmarks/multi_swe_bench/infer.sh` to define the model and agent behavior.
+
+```bash
+MODELS=("gpt")
+GIT_VERSION="HEAD"
+AGENT_NAME="CodeActAgent"
+EVAL_LIMIT="500"
+MAX_ITER="50"
+NUM_WORKERS="1"
+LANGUAGE="java"
+DATASET="[your_dataset_directory]"
+
+```
+
+## Step 10: Run the Multi-SWE-Bench Evaluation
+
+Execute the inference process.
+
+```bash
+bash evaluation/benchmarks/multi_swe_bench/infer.sh 
+
+```
+
+## Step 11: Install SWE-bench-Live for Java
+
+Clone the benchmark repository and install the required modules in editable mode.
+
+```bash
+git clone --recurse-submodules https://github.com/microsoft/SWE-bench-Live.git
+cd SWE-bench-Live
+pip install -e .
+pip install -e launch/.
+
+```
+
+## Step 12: Align Benchmark Data Formats
+
+Update the `data_format.py` script to ensure the OpenHands output matches the SWE-bench-Live input requirements.
+
+```python
+# Edit the variables in data_format.py
+input_file = "output.jsonl"
+output_file = "patch.jsonl"
+
+```
+
+## Step 13: Execute Final Java Evaluation
+
+Run the evaluation module to calculate the success rate and generate logs.
+
+Dataset should be unchanged original data before used in Openhands "tmp/java_examples.jsonl"
+
+```bash
+python -m evaluation.evaluation \
+    --dataset "path_to_dataset" \
+    --platform linux \
+    --split test \
+    --patch_dir "patch.jsonl" \
+    --output_dir logs/test \
+    --workers 2 \
+    --overwrite 0
+
+```
+
+## Step 14: Review Evaluation Results
+
+Check the `logs/` directory for detailed breakdown of the test results.
+
+```bash
+ls logs/test
+
+```

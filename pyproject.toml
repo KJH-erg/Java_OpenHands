@@ -101,6 +101,7 @@ dependencies = [
   "uvicorn",
   "whatthepatch>=1.0.6",
   "zope-interface==7.2",
+  "datasets (>=4.5.0,<5.0.0)",
 ]
 
 optional-dependencies.third_party_runtimes = [
@@ -145,7 +146,6 @@ evaluation = [
   "browsergym-miniwob==0.13.3",
   "browsergym-visualwebarena==0.13.3",
   "browsergym-webarena==0.13.3",
-  "commit0",
   "datasets",
   "evaluate",
   "func-timeout",
@@ -338,7 +338,6 @@ retry = "*"
 evaluate = "*"
 visualswebench = { git = "https://github.com/luolin101/Visual-SWE-bench.git" }
 swegym = { git = "https://github.com/SWE-Gym/SWE-Bench-Package.git" }
-commit0 = "*"
 func_timeout = "*"
 sympy = "*"
 gdown = "*"

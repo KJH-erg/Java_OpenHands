@@ -52,8 +52,11 @@ RUN_WITH_BROWSING = os.environ.get('RUN_WITH_BROWSING', 'false').lower() == 'tru
 # TODO: migrate all swe-bench docker to ghcr.io/openhands
 # TODO: 适应所有的语言
 DOCKER_IMAGE_PREFIX = os.environ.get('EVAL_DOCKER_IMAGE_PREFIX', 'mswebench')
+DOCKER_IMAGE_PREFIX=''
+CONTAINER_NAME_PREFIX=""
 LANGUAGE = os.environ.get('LANGUAGE', 'java')
 logger.info(f'Using docker image prefix: {DOCKER_IMAGE_PREFIX}')
+# exit(0)
 
 
 AGENT_CLS_TO_FAKE_USER_RESPONSE_FN = {
@@ -99,16 +102,16 @@ def get_instruction(instance: pd.Series, metadata: EvalMetadata):
         ),
         'java': (
             '<uploaded_files>\n'
-            f'/workspace/{workspace_dir_name}\n'
+            f'/testbed\n'
             '</uploaded_files>\n'
-            f"I've uploaded a Java code repository in the directory {workspace_dir_name}. Consider the following issue description:\n\n"
+            f"I've uploaded a Java code repository in the directory testbed Consider the following issue description:\n\n"
             f'<issue_description>\n'
             f'{instance.problem_statement}\n'
             '</issue_description>\n\n'
             'Can you help me implement the necessary changes to the repository so that the requirements specified in the <issue_description> are met?\n'
             "I've already taken care of all changes to any of the test files described in the <issue_description>. This means you DON'T have to modify the testing logic or any of the tests in any way!\n"
             "Also the development Java environment is already set up for you (i.e., all dependencies already installed), so you don't need to install other packages.\n"
-            'Your task is to make the minimal changes to non-test files in the /workspace directory to ensure the <issue_description> is satisfied.\n'
+            'Your task is to make the minimal changes to non-test files in the / directory to ensure the <issue_description> is satisfied.\n'
             'Follow these steps to resolve the issue:\n'
             '1. As a first step, it might be a good idea to explore the repo to familiarize yourself with its structure.\n'
             '2. Create a Java class to reproduce the error and execute it by first compiling with `javac <classname>.java` and then running with `java <classname>` using the BashTool, to confirm the error\n'
@@ -293,19 +296,15 @@ def get_instruction(instance: pd.Series, metadata: EvalMetadata):
 #     else:
 #         return image_name.lower() ##加载本地的
 def get_instance_docker_image(instance: pd.Series):
-    if LANGUAGE == 'python':
-        image_name = 'sweb.eval.x86_64.' + instance['instance_id']
-        image_name = image_name.replace(
-            '__', '_s_'
-        )  # to comply with docker image naming convention
-        return (DOCKER_IMAGE_PREFIX.rstrip('/') + '/' + image_name).lower()
-    else:
-        container_name = instance.get('repo', '').lower()
-        container_name = container_name.replace('/', '_m_')
-        instance_id = instance.get('instance_id', '')
-        tag_suffix = instance_id.split('-')[-1] if instance_id else ''
-        container_tag = f'pr-{tag_suffix}'
-        return f'{DOCKER_IMAGE_PREFIX}/{container_name}:{container_tag}'
+    container_name = instance.get('repo', '').lower()
+    instance_id = instance.get('instance_id', '')
+    first_part,prj = instance_id.split("-")
+    name = first_part.split("__")[0]
+    # pdb.set_trace()
+    container_name = container_name+"/"+name
+    tag= "pr_"+prj
+
+    return(f"{container_name}:{tag}")
 
 
 def get_config(
@@ -366,6 +365,7 @@ def initialize_runtime(
     workspace_dir_name = _get_swebench_workspace_dir_name(instance)
     obs: CmdOutputObservation
 
+
     REPO_NAME = instance['repo'].split('/')[-1]
     # Set instance id
     action = CmdRunAction(
@@ -386,84 +386,89 @@ def initialize_runtime(
     logger.info(obs, extra={'msg_type': 'OBSERVATION'})
     assert_and_raise(obs.exit_code == 0, f'Failed to export USER: {str(obs)}')
 
-    if USE_INSTANCE_IMAGE:
         # inject the init script
-        script_dir = os.path.dirname(__file__)
+    script_dir = os.path.dirname(__file__)
 
-        # inject the instance info
-        action = CmdRunAction(command='mkdir -p /swe_util/eval_data/instances')
-        action.set_hard_timeout(600)
-        logger.info(action, extra={'msg_type': 'ACTION'})
-        obs = runtime.run_action(action)
-        logger.info(obs, extra={'msg_type': 'OBSERVATION'})
-        assert_and_raise(
-            obs.exit_code == 0,
-            f'Failed to create /swe_util/eval_data/instances: {str(obs)}',
-        )
-
-        swe_instance_json_name = 'swe-bench-instance.json'
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Construct the full path for the desired file name within the temporary directory
-            temp_file_path = os.path.join(temp_dir, swe_instance_json_name)
-            # Write to the file with the desired name within the temporary directory
-            with open(temp_file_path, 'w') as f:
-                if not isinstance(instance, dict):
-                    json.dump([instance.to_dict()], f)
-                else:
-                    json.dump([instance], f)
-
-            # Copy the file to the desired location
-            runtime.copy_to(temp_file_path, '/swe_util/eval_data/instances/')
-
-        # inject the instance swe entry
-        runtime.copy_to(
-            str(os.path.join(script_dir, 'scripts/setup/instance_swe_entry.sh')),
-            '/swe_util/',
-        )
-        action = CmdRunAction(command='cat ~/.bashrc')
-        action.set_hard_timeout(600)
-        logger.info(action, extra={'msg_type': 'ACTION'})
-        obs = runtime.run_action(action)
-        logger.info(obs, extra={'msg_type': 'OBSERVATION'})
-        assert_and_raise(obs.exit_code == 0, f'Failed to cat ~/.bashrc: {str(obs)}')
-
-        action = CmdRunAction(command='source ~/.bashrc')
-        action.set_hard_timeout(600)
-        logger.info(action, extra={'msg_type': 'ACTION'})
-        obs = runtime.run_action(action)
-        logger.info(obs, extra={'msg_type': 'OBSERVATION'})
-        if isinstance(obs, ErrorObservation):
-            logger.error(f'Failed to source ~/.bashrc: {str(obs)}')
-        assert_and_raise(obs.exit_code == 0, f'Failed to source ~/.bashrc: {str(obs)}')
-
-        action = CmdRunAction(command='source /swe_util/instance_swe_entry.sh')
-        action.set_hard_timeout(600)
-        logger.info(action, extra={'msg_type': 'ACTION'})
-        obs = runtime.run_action(action)
-        logger.info(obs, extra={'msg_type': 'OBSERVATION'})
-        assert_and_raise(
-            obs.exit_code == 0,
-            f'Failed to source /swe_util/instance_swe_entry.sh: {str(obs)}',
-        )
-    else:
-        action = CmdRunAction(command='source /swe_util/swe_entry.sh')
-        action.set_hard_timeout(1800)
-        logger.info(action, extra={'msg_type': 'ACTION'})
-        obs = runtime.run_action(action)
-        logger.info(obs, extra={'msg_type': 'OBSERVATION'})
-        assert_and_raise(
-            obs.exit_code == 0,
-            f'Failed to source /swe_util/swe_entry.sh: {str(obs)}',
-        )
-
-    action = CmdRunAction(command=f'cd /workspace/{workspace_dir_name}')
+    # inject the instance info
+    action = CmdRunAction(command='mkdir -p /swe_util/eval_data/instances')
     action.set_hard_timeout(600)
     logger.info(action, extra={'msg_type': 'ACTION'})
     obs = runtime.run_action(action)
     logger.info(obs, extra={'msg_type': 'OBSERVATION'})
     assert_and_raise(
         obs.exit_code == 0,
-        f'Failed to cd to /workspace/{workspace_dir_name}: {str(obs)}',
+        f'Failed to create /swe_util/eval_data/instances: {str(obs)}',
+    )
+
+    swe_instance_json_name = 'swe-bench-instance.json'
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Construct the full path for the desired file name within the temporary directory
+        temp_file_path = os.path.join(temp_dir, swe_instance_json_name)
+        # Write to the file with the desired name within the temporary directory
+        with open(temp_file_path, 'w') as f:
+            if not isinstance(instance, dict):
+                json.dump([instance.to_dict()], f)
+            else:
+                json.dump([instance], f)
+
+        # Copy the file to the desired location
+        runtime.copy_to(temp_file_path, '/swe_util/eval_data/instances/')
+
+    # inject the instance swe entry
+    runtime.copy_to(
+        str(os.path.join(script_dir, 'scripts/setup/instance_swe_entry.sh')),
+        '/swe_util/',
+    )
+    action = CmdRunAction(command='cat ~/.bashrc')
+    action.set_hard_timeout(600)
+    logger.info(action, extra={'msg_type': 'ACTION'})
+    obs = runtime.run_action(action)
+    logger.info(obs, extra={'msg_type': 'OBSERVATION'})
+    assert_and_raise(obs.exit_code == 0, f'Failed to cat ~/.bashrc: {str(obs)}')
+
+    action = CmdRunAction(command='source ~/.bashrc')
+    action.set_hard_timeout(600)
+    logger.info(action, extra={'msg_type': 'ACTION'})
+    obs = runtime.run_action(action)
+    logger.info(obs, extra={'msg_type': 'OBSERVATION'})
+    if isinstance(obs, ErrorObservation):
+        logger.error(f'Failed to source ~/.bashrc: {str(obs)}')
+    assert_and_raise(obs.exit_code == 0, f'Failed to source ~/.bashrc: {str(obs)}')
+
+    # action = CmdRunAction(command='source /swe_util/swe_entry.sh')
+    # action.set_hard_timeout(1800)
+    # logger.info(action, extra={'msg_type': 'ACTION'})
+    # obs = runtime.run_action(action)
+    # logger.info(obs, extra={'msg_type': 'OBSERVATION'})
+    # assert_and_raise(
+    #     obs.exit_code == 0,
+    #     f'Failed to source /swe_util/swe_entry.sh: {str(obs)}',
+    # )
+    action = CmdRunAction(
+    command=(
+        'export JAVA_HOME=/opt/java/openjdk && '
+        'export PATH=$JAVA_HOME/bin:$PATH && '
+        'java -version && javac -version'
+    )
+    )
+    action.set_hard_timeout(1800)
+
+    logger.info(action, extra={'msg_type': 'ACTION'})
+    obs = runtime.run_action(action)
+    logger.info(obs, extra={'msg_type': 'OBSERVATION'})
+
+    assert_and_raise(
+        obs.exit_code == 0,
+        f'Java not available: {str(obs)}',
+    )
+    action = CmdRunAction(command=f'cd /testbed')
+    action.set_hard_timeout(600)
+    logger.info(action, extra={'msg_type': 'ACTION'})
+    obs = runtime.run_action(action)
+    logger.info(obs, extra={'msg_type': 'OBSERVATION'})
+    assert_and_raise(
+        obs.exit_code == 0,
+        f'Failed to cd to /testbed : {str(obs)}',
     )
 
     action = CmdRunAction(command='git reset --hard')
@@ -513,7 +518,7 @@ def complete_runtime(
     obs: CmdOutputObservation
     workspace_dir_name = _get_swebench_workspace_dir_name(instance)
 
-    action = CmdRunAction(command=f'cd /workspace/{workspace_dir_name}')
+    action = CmdRunAction(command=f'cd /testbed')
     action.set_hard_timeout(600)
     logger.info(action, extra={'msg_type': 'ACTION'})
     obs = runtime.run_action(action)
@@ -528,7 +533,7 @@ def complete_runtime(
         logger.info(obs, extra={'msg_type': 'OBSERVATION'})
 
         # Then run the command again
-        action = CmdRunAction(command=f'cd /workspace/{workspace_dir_name}')
+        action = CmdRunAction(command=f'cd /testbed')
         action.set_hard_timeout(600)
         logger.info(action, extra={'msg_type': 'ACTION'})
         obs = runtime.run_action(action)
@@ -536,7 +541,7 @@ def complete_runtime(
 
     assert_and_raise(
         isinstance(obs, CmdOutputObservation) and obs.exit_code == 0,
-        f'Failed to cd to /workspace/{workspace_dir_name}: {str(obs)}',
+        f'Failed to cd to /testbed : {str(obs)}',
     )
 
     action = CmdRunAction(command='git config --global core.pager ""')
@@ -644,12 +649,16 @@ def process_instance(
         logger.warning(
             f'This is the {runtime_failure_count + 1}th attempt for instance {instance.instance_id}, setting resource factor to {config.sandbox.remote_runtime_resource_factor}'
         )
-    # pdb.set_trace()
     runtime = create_runtime(config)
+    
     call_async_from_sync(runtime.connect)
+
+    
 
     try:
         initialize_runtime(runtime, instance)
+        
+
 
         instruction = get_instruction(instance, metadata)
 

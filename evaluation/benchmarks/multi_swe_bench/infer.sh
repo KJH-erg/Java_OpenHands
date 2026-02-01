@@ -3,14 +3,14 @@
 
 BASE_SCRIPT="./evaluation/benchmarks/multi_swe_bench/scripts/run_infer.sh"
 
-MODELS=("aaa" "bbb" "ccc" "ddd" "fff")
+MODELS=("gpt")
 GIT_VERSION="HEAD"
 AGENT_NAME="CodeActAgent"
 EVAL_LIMIT="500"
 MAX_ITER="50"
-NUM_WORKERS="1"
-LANGUAGE="XXX"
-DATASET="XXX"
+NUM_WORKERS="2"
+LANGUAGE="java"
+DATASET="/home/kjh/main/Java_OpenHands/evaluation/benchmarks/multi_swe_bench/data/new_java_examples.jsonl"
 
 
 for MODEL in "${MODELS[@]}"; do
