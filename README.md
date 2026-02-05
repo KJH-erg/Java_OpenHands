@@ -62,7 +62,7 @@ make run
 
 Ensure you have the correct Docker image for your specific Java project.
 
-> **Naming Convention:** `java/project_name:pr_number`
+> **Naming Convention:** `java/[project_name]:pr_p[pr_number]`
 
 ## Step 8: Data Format Transformation
 
